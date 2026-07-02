@@ -1,0 +1,14 @@
+---
+import Layout from "../layouts/Layout.astro";
+import DataView from "../components/DataView.tsx";
+---
+
+<Layout title="Bet console — Data" active="data" showFeed={false}>
+  <div class="page-head">
+    <span class="eyebrow">Records</span>
+    <h1>Data</h1>
+    <p>Inspect all bets and settlements for a specific user.</p>
+  </div>
+
+  <DataView client:load />
+</Layout>

@@ -1,0 +1,25 @@
+---
+import Layout from "../layouts/Layout.astro";
+import HistoryFeed from "../components/HistoryFeed.tsx";
+---
+
+<Layout title="Bet console — History" active="history" showFeed={false}>
+  <div class="page-head">
+    <span class="eyebrow">Live stream</span>
+    <h1>History</h1>
+    <p>Every bet as it's placed, newest first. Settlements are shown on the Data page.</p>
+  </div>
+
+  <div class="panel" style="max-width:640px;">
+    <div class="panel__head">
+      <span class="eyebrow">Latest bets</span>
+      <div class="feed__live">
+        <span class="feed__pulse"></span>
+        <span class="eyebrow" style="letter-spacing:0.1em;">live</span>
+      </div>
+    </div>
+    <div class="panel__body" style="padding:0.4rem;">
+      <HistoryFeed client:load />
+    </div>
+  </div>
+</Layout>

@@ -1,0 +1,102 @@
+---
+import "../styles/global.css";
+import UserSelector from "../components/UserSelector.tsx";
+import HistoryFeed from "../components/HistoryFeed.tsx";
+
+interface Props {
+  title?: string;
+  active?: "index" | "data" | "history";
+  showFeed?: boolean;
+}
+const {
+  title = "Bet console",
+  active = "index",
+  showFeed = true,
+} = Astro.props;
+
+const links = [
+  { key: "index", href: "/", label: "Index" },
+  { key: "data", href: "/data", label: "Data" },
+  { key: "history", href: "/history", label: "History" },
+] as const;
+
+const fontHref =
+  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href={fontHref} />
+  </head>
+  <body>
+    <div class={showFeed ? "shell" : "shell no-feed"}>
+      <nav class="nav">
+        <div class="nav__brand">
+          <div class="nav__brand-mark">bet<span>·</span>console</div>
+          <div class="nav__brand-sub eyebrow">stake terminal</div>
+        </div>
+
+        <UserSelector client:load />
+
+        <div class="nav__links">
+          {
+            links.map((l) => (
+              <a
+                class="nav__link"
+                href={l.href}
+                aria-current={active === l.key ? "page" : undefined}
+              >
+                <span class="nav__dot" />
+                {l.label}
+              </a>
+            ))
+          }
+        </div>
+
+        <div class="nav__spacer"></div>
+
+        <div class="nav__foot">
+          <div class="eyebrow">session</div>
+          <div
+            class="mono"
+            style="color:var(--ink-300); font-size:var(--step--1); margin-top:0.3rem;"
+          >
+            local · dev
+          </div>
+        </div>
+      </nav>
+
+      <main class="main">
+        <slot />
+      </main>
+
+      {
+        showFeed && (
+          <aside class="feed">
+            <div class="feed__head">
+              <div>
+                <div class="eyebrow">History</div>
+                <div style="font-family:var(--font-display); font-weight:600; margin-top:0.15rem;">
+                  Latest bets
+                </div>
+              </div>
+              <div class="feed__live">
+                <span class="feed__pulse" />
+                <span class="eyebrow" style="letter-spacing:0.1em;">
+                  live
+                </span>
+              </div>
+            </div>
+            <HistoryFeed client:load />
+          </aside>
+        )
+      }
+    </div>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+---
+import Layout from "../layouts/Layout.astro";
+import BettingFlow from "../components/BettingFlow.tsx";
+---
+
+<Layout title="Bet console — Index" active="index" showFeed={true}>
+  <div class="page-head">
+    <span class="eyebrow">Place a bet</span>
+    <h1>Index</h1>
+    <p>Pick a category, choose an ongoing event, then set your selection and stake.</p>
+  </div>
+
+  <BettingFlow client:load />
+</Layout>
