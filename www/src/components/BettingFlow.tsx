@@ -1,186 +1,24 @@
-import { component$, useStore, $ } from "@builder.io/qwik";
+import { $, component$, useStore } from "@builder.io/qwik";
 
-const CATEGORIES = [
-  { key: "football",   label: "Football",   glyph: "⚽" },
-  { key: "basketball", label: "Basketball", glyph: "🏀" },
-  { key: "tennis",     label: "Tennis",     glyph: "🎾" },
-  { key: "esports",    label: "Esports",    glyph: "🎮" },
-  { key: "hockey",     label: "Hockey",     glyph: "🏒" },
-  { key: "baseball",   label: "Baseball",   glyph: "⚾" },
-];
+import { useStyles$ } from "@builder.io/qwik";
 
-// Placeholder events per category — same shape regardless of category for now.
+export interface Category {
+  id: number;
+  name: string;
+  glyph: string | null;
+}
+
+interface Props {
+  categories: Category[];
+  loadError?: boolean;
+}
+
 const PLACEHOLDER_EVENTS = [0, 1, 2, 3];
 
 type Selection = "A" | "draw" | "B" | null;
 
-export const BettingFlow = component$(() => {
-  const s = useStore({
-    category: null as string | null,
-    event: null as number | null,
-    selection: null as Selection,
-    stake: "",
-  });
-
-  const pickCategory = $((k: string) => {
-    s.category = k;
-    s.event = null;
-    s.selection = null;
-    s.stake = "";
-  });
-  const pickEvent = $((i: number) => {
-    s.event = i;
-    s.selection = null;
-    s.stake = "";
-  });
-  const reset = $(() => {
-    s.category = null;
-    s.event = null;
-    s.selection = null;
-    s.stake = "";
-  });
-
-  const catLabel = CATEGORIES.find((c) => c.key === s.category)?.label ?? "";
-
-  return (
-    <div class="flow">
-      <div class="flow__crumbs">
-        <button class="crumb" data-active={s.category === null} onClick$={reset}>
-          <span class="crumb__n mono">1</span> Category
-        </button>
-        <span class="crumb__sep">/</span>
-        <button
-          class="crumb"
-          data-active={s.category !== null && s.event === null}
-          data-disabled={s.category === null}
-          onClick$={() => s.category && (s.event = null)}
-        >
-          <span class="crumb__n mono">2</span> Event
-        </button>
-        <span class="crumb__sep">/</span>
-        <span class="crumb" data-active={s.event !== null} data-disabled={s.event === null}>
-          <span class="crumb__n mono">3</span> Place bet
-        </span>
-      </div>
-
-      <section class="flow__step">
-        <header class="flow__step-head">
-          <span class="eyebrow">Step 1 — pick a category</span>
-        </header>
-        <div class="cat-grid">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.key}
-              class="cat"
-              data-active={s.category === c.key}
-              onClick$={() => pickCategory(c.key)}
-            >
-              <span class="cat__glyph">{c.glyph}</span>
-              <span class="cat__label">{c.label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {s.category && (
-        <section class="flow__step">
-          <header class="flow__step-head">
-            <span class="eyebrow">Step 2 — ongoing {catLabel.toLowerCase()} events</span>
-          </header>
-          <div class="ev-list">
-            {PLACEHOLDER_EVENTS.map((i) => (
-              <button
-                key={i}
-                class="ev"
-                data-active={s.event === i}
-                onClick$={() => pickEvent(i)}
-              >
-                <span class="ev__live"></span>
-                <span class="ev__teams">
-                  <span class="ev__team">Team A</span>
-                  <span class="ev__vs">vs</span>
-                  <span class="ev__team">Team B</span>
-                </span>
-                <span class="ev__meta mono">— · —</span>
-                <span class="ev__go">›</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {s.event !== null && (
-        <section class="flow__step">
-          <header class="flow__step-head">
-            <span class="eyebrow">Step 3 — place your bet</span>
-          </header>
-
-          <div class="slip">
-            <div class="slip__match">
-              <span class="tag">{catLabel}</span>
-              <span class="slip__teams">Team A <span class="slip__vs">vs</span> Team B</span>
-            </div>
-
-            <div class="field">
-              <label class="field__label">Selection</label>
-              <div class="seg">
-                <button
-                  class="seg__opt"
-                  data-active={s.selection === "A"}
-                  onClick$={() => (s.selection = "A")}
-                >
-                  Team A win
-                </button>
-                <button
-                  class="seg__opt"
-                  data-active={s.selection === "draw"}
-                  onClick$={() => (s.selection = "draw")}
-                >
-                  Draw
-                </button>
-                <button
-                  class="seg__opt"
-                  data-active={s.selection === "B"}
-                  onClick$={() => (s.selection = "B")}
-                >
-                  Team B win
-                </button>
-              </div>
-            </div>
-
-            <div class="field">
-              <label class="field__label" for="stake">Stake</label>
-              <div class="stake">
-                <span class="stake__cur mono">¤</span>
-                <input
-                  id="stake"
-                  class="stake__input mono"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={s.stake}
-                  onInput$={(_, el) => (s.stake = el.value)}
-                />
-              </div>
-            </div>
-
-            <button
-              class="slip__place"
-              disabled={!s.selection || s.stake.trim() === ""}
-              onClick$={() => { }}
-            >
-              Place bet
-            </button>
-            <p class="slip__note">Placing bets is wired up in a later step.</p>
-          </div>
-        </section>
-      )}
-
-      <style dangerouslySetInnerHTML={CSS}></style>
-    </div>
-  );
-});
-
-const CSS = `
+export const BettingFlow = component$<Props>(({ categories, loadError }) => {
+  useStyles$(`
   .flow { display: flex; flex-direction: column; gap: 1.5rem; }
 
   .flow__crumbs { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
@@ -272,7 +110,218 @@ const CSS = `
 
   @media (max-width: 560px) {
     .cat-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-`;
+  }`);
+
+  const s = useStore({
+    categoryId: null as number | null,
+    event: null as number | null,
+    selection: null as Selection,
+    stake: "" as string | "",
+  });
+
+  const pickCategory = $((id: number) => {
+    s.categoryId = id;
+    s.event = null;
+    s.selection = null;
+    s.stake = "";
+  });
+  const pickEvent = $((id: number) => {
+    s.event = id;
+    s.selection = null;
+    s.stake = "";
+  });
+  const reset = $(() => {
+    s.categoryId = null;
+    s.event = null;
+    s.selection = null;
+    s.stake = "";
+  });
+
+  const setStakesInput = $((newStake: string) => {
+    s.stake = newStake;
+  });
+  const changeBetSelectionInput = $((newSelection: Selection) => {
+    s.selection = newSelection;
+  });
+
+  const returnToCategoryBetPlacementStep = $(() => {
+    s.event = null;
+    return s.categoryId;
+  });
+
+  const categoryLabel = categories.find((c) => c.id === s.categoryId)?.name ?? "";
+
+  return (
+    <div class="flow">
+      <div class="flow__crumbs">
+        <button
+          type="button"
+          class="crumb"
+          data-active={s.categoryId === null}
+          onClick$={reset}
+        >
+          <span class="crumb__n mono">1</span> Category
+        </button>
+        <span class="crumb__sep">/</span>
+        <button
+          type="button"
+          class="crumb"
+          data-active={s.categoryId !== null && s.event === null}
+          data-disabled={s.categoryId === null}
+          onClick$={() => returnToCategoryBetPlacementStep()}
+        >
+          <span class="crumb__n mono">2</span> Event
+        </button>
+        <span class="crumb__sep">/</span>
+        <span
+          class="crumb"
+          data-active={s.event !== null}
+          data-disabled={s.event === null}
+        >
+          <span class="crumb__n mono">3</span> Place bet
+        </span>
+      </div>
+
+      <section class="flow__step">
+        <header class="flow__step-head">
+          <span class="eyebrow">Step 1 — pick a category</span>
+        </header>
+        {loadError ? (
+          <div class="empty">
+            <strong>Couldn't load categories</strong>
+            The betting service isn't reachable right now. Try refreshing.
+          </div>
+        ) : categories.length === 0 ? (
+          <div class="empty">
+            <strong>No categories available</strong>
+            There's nothing to bet on yet.
+          </div>
+        ) : (
+          <div class="cat-grid">
+            {categories.map((c) => (
+              <button
+                type="button"
+                key={c.id}
+                class="cat"
+                data-active={s.categoryId === c.id}
+                onClick$={() => pickCategory(c.id)}
+              >
+                <span class="cat__glyph">{c.glyph}</span>
+                <span class="cat__label">{c.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {s.categoryId !== null && (
+        <section class="flow__step">
+          <header class="flow__step-head">
+            <span class="eyebrow">
+              Step 2 — ongoing {categoryLabel.toLowerCase()} events
+            </span>
+          </header>
+          <div class="ev-list">
+            {PLACEHOLDER_EVENTS.map((idx) => (
+              <button
+                type="button"
+                key={idx}
+                class="ev"
+                data-active={s.event === idx}
+                onClick$={() => pickEvent(idx)}
+              >
+                <span class="ev__live" />
+                <span class="ev__teams">
+                  <span class="ev__team">Team A</span>
+                  <span class="ev__vs">vs</span>
+                  <span class="ev__team">Team B</span>
+                </span>
+                <span class="ev__meta mono">— · —</span>
+                <span class="ev__go">›</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {s.event !== null && (
+        <section class="flow__step">
+          <header class="flow__step-head">
+            <span class="eyebrow">Step 3 — place your bet</span>
+          </header>
+
+          <div class="slip">
+            <div class="slip__match">
+              <span class="tag">{categoryLabel}</span>
+              <span class="slip__teams">
+                Team A <span class="slip__vs">vs</span> Team B
+              </span>
+            </div>
+
+            <div class="field">
+              <label for="placeBetButton" class="field__label">
+                Selection
+              </label>
+              <div class="seg">
+                <button
+                  type="button"
+                  class="seg__opt"
+                  data-active={s.selection === "A"}
+                  onClick$={() => changeBetSelectionInput("A")}
+                >
+                  Team A win
+                </button>
+                <button
+                  type="button"
+                  class="seg__opt"
+                  data-active={s.selection === "draw"}
+                  onClick$={() => changeBetSelectionInput("draw")}
+                >
+                  Draw
+                </button>
+                <button
+                  type="button"
+                  class="seg__opt"
+                  data-active={s.selection === "B"}
+                  onClick$={() => changeBetSelectionInput("B")}
+                >
+                  Team B win
+                </button>
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="stake">
+                Stake
+              </label>
+              <div class="stake">
+                <span class="stake__cur mono">¤</span>
+                <input
+                  id="stake"
+                  class="stake__input mono"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={s.stake}
+                  onInput$={(_, element) => setStakesInput(element.value)}
+                />
+              </div>
+            </div>
+
+            <button
+              name="placeBetButton"
+              type="button"
+              class="slip__place"
+              disabled={!s.selection || s.stake.trim() === ""}
+              onClick$={() => {}}
+            >
+              Place bet
+            </button>
+            <p class="slip__note">Placing bets is wired up in a later step.</p>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+});
 
 export default BettingFlow;

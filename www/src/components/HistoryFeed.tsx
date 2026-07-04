@@ -11,7 +11,7 @@ export const HistoryFeed = component$(() => {
           New bets will stream in here as they're placed.
         </div>
       ) : (
-        <div class="tickets">{ }</div>
+        <div class="tickets">{}</div>
       )}
     </div>
   );

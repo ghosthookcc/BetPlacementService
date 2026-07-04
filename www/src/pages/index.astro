@@ -1,14 +1,37 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import BettingFlow from "../components/BettingFlow.tsx";
+
+const API_BASE = import.meta.env.API_BASE_URL ?? "http://localhost:8080";
+
+let categories: { id: number; name: string; glyph: string | null }[] = [];
+
+let categoriesError = false;
+
+try
+{
+  const response = await fetch(`${API_BASE}/api/categories`);
+  if (response.ok)
+  {
+    categories = await response.json();
+  }
+  else
+  {
+    categoriesError = true;
+  }
+}
+catch
+{
+  categoriesError = true;
+}
 ---
 
-<Layout title="Bet console — Index" active="index" showFeed={true}>
+<Layout title="Bet console - Index" active="index" showFeed={true}>
   <div class="page-head">
     <span class="eyebrow">Place a bet</span>
     <h1>Index</h1>
     <p>Pick a category, choose an ongoing event, then set your selection and stake.</p>
   </div>
 
-  <BettingFlow client:load />
+  <BettingFlow categories={categories} loadError={categoriesError} client:load />
 </Layout>
