@@ -14,10 +14,7 @@ import {
   setActiveUser,
 } from "../lib/userStore";
 
-interface User {
-  id: number;
-  fullName: string;
-}
+import type { User } from "src/types";
 
 interface Props {
   apiBaseUrl: string;
@@ -85,8 +82,7 @@ export const UserSelector = component$<Props>(({ apiBaseUrl }) => {
     open.value = !open.value;
   });
 
-  const choose = $((user: User) =>
-  {
+  const choose = $((user: User) => {
     const active: ActiveUser = { id: user.id, fullName: user.fullName };
     setActiveUser(active);
     chosen.value = active;

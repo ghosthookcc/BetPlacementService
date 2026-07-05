@@ -2,23 +2,7 @@ import { $, component$, useSignal, useStore } from "@builder.io/qwik";
 
 import { useStyles$ } from "@builder.io/qwik";
 
-export interface Category {
-  id: number;
-  name: string;
-  glyph: string | null;
-}
-
-export interface Event {
-  id: string; // UUID
-  categoryId: number;
-  teamA: string;
-  teamB: string;
-  oddsTeamA: number;
-  oddsDraw: number;
-  oddsTeamB: number;
-  state: string;
-  startsAt: string | null;
-}
+import type { Category, Event } from "src/types";
 
 interface Props {
   categories: Category[];
@@ -335,7 +319,7 @@ export const BettingFlow = component$<Props>(
                     <span class="ev__live" />
                     <span class="ev__teams">
                       <span class="ev__team">{e.teamA}</span>
-                      <span class="ev__vs">vs</span>
+                      <span class="ev__vs"> vs </span>
                       <span class="ev__team">{e.teamB}</span>
                     </span>
                     <span class="ev__meta mono">
@@ -361,7 +345,7 @@ export const BettingFlow = component$<Props>(
                 <span class="tag">{categoryLabel}</span>
                 <span class="slip__teams">
                   {event.teamA}
-                  <span class="slip__vs">vs</span>
+                  <span class="slip__vs"> vs </span>
                   {event.teamB}
                 </span>
               </div>

@@ -1,5 +1,5 @@
 ---
-import HistoryFeed from "../components/HistoryFeed.tsx";
+import HistoryView from "../components/HistoryView.tsx";
 import Layout from "../layouts/Layout.astro";
 
 const PUBLIC_API_BASE =
@@ -22,7 +22,7 @@ const PUBLIC_API_BASE =
       </div>
     </div>
     <div class="panel__body" style="padding: 0.4rem;">
-      <HistoryFeed apiBaseUrl={PUBLIC_API_BASE} client:load />
+      <HistoryView apiBaseUrl={PUBLIC_API_BASE} limit={100} client:load />
     </div>
   </div>
 </Layout>

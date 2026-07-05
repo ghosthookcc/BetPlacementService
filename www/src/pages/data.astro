@@ -1,6 +1,9 @@
 ---
 import BettingView from "../components/BettingView.tsx";
 import Layout from "../layouts/Layout.astro";
+
+const PUBLIC_API_BASE =
+  import.meta.env.PUBLIC_API_URL ?? "http://localhost:8080";
 ---
 
 <Layout title="Bet console - Data" active="data" showFeed={false}>
@@ -10,5 +13,5 @@ import Layout from "../layouts/Layout.astro";
     <p>Inspect all bets and settlements for a specific user.</p>
   </div>
 
-  <BettingView client:load />
+  <BettingView apiBaseUrl={PUBLIC_API_BASE} client:load />
 </Layout>
