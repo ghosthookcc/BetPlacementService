@@ -49,7 +49,8 @@ services:
       context: ./www
       dockerfile: Dockerfile
       args:
-        PUBLIC_API_URL: ${PUBLIC_API_URL}
+        PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+        API_BASE_URL: ${API_BASE_URL:-http://api:8080}
         BUILDKIT_INLINE_CACHE: 1
     env_file: .env
     environment:

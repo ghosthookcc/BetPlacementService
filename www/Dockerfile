@@ -12,6 +12,9 @@ COPY . .
 ARG PUBLIC_API_URL=http://localhost:8080
 ENV PUBLIC_API_URL=${PUBLIC_API_URL}
 
+ARG API_BASE_URL=http://localhost:8080
+ENV API_BASE_URL=${API_BASE_URL}
+
 RUN pnpm build
 
 # ---- runtime ----
