@@ -7,10 +7,8 @@ let categories: { id: number; name: string; glyph: string | null }[] = [];
 let categoriesError = false;
 
 const API_BASE = import.meta.env.API_BASE_URL || "http://localhost:8080";
-const PUBLIC_API_BASE = import.meta.env.PUBLIC_API_URL || "http://localhost:8080";
-
-console.log(`API_BASE: ${API_BASE}`);
-console.log(`PUBLIC_API_BASE: ${PUBLIC_API_BASE}`)
+const PUBLIC_API_BASE =
+  import.meta.env.PUBLIC_API_URL || "http://localhost:8080";
 
 try {
   const response = await fetch(`${API_BASE}/api/categories`);
@@ -28,8 +26,16 @@ try {
   <div class="page-head">
     <span class="eyebrow">Place a bet</span>
     <h1>Index</h1>
-    <p>Pick a category, choose an ongoing event, then set your selection and stake.</p>
+    <p>
+      Pick a category, choose an ongoing event, then set your selection and
+      stake.
+    </p>
   </div>
 
-  <BettingFlow categories={categories} apiBaseUrl={PUBLIC_API_BASE} loadError={categoriesError} client:load />
+  <BettingFlow
+    categories={categories}
+    apiBaseUrl={PUBLIC_API_BASE}
+    loadError={categoriesError}
+    client:load
+  />
 </Layout>
