@@ -8,7 +8,7 @@ x-logging: &default-logging
 
 services:
   postgresql:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     env_file: .env
     volumes: 
       - pgdata:/var/lib/postgresql
@@ -49,12 +49,15 @@ services:
       context: ./www
       dockerfile: Dockerfile
       args:
+        PUBLIC_API_URL: ${PUBLIC_API_URL}
         BUILDKIT_INLINE_CACHE: 1
     env_file: .env
     environment:
-      API_BASE_URL: http://localhost:8080
+      API_BASE_URL: http://api:8080
     ports:
       - "4321:4321"
+    depends_on:
+      - api
     develop:
       watch:
         - action: sync

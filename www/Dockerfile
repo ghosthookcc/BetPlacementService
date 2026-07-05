@@ -8,6 +8,10 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+
+ARG PUBLIC_API_URL=http://localhost:8080
+ENV PUBLIC_API_URL=${PUBLIC_API_URL}
+
 RUN pnpm build
 
 # ---- runtime ----
