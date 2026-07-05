@@ -26,4 +26,15 @@ public final class Request extends Dto
             @NotBlank(message = "requestId is required")
             String requestId
     ) {}
+
+    public record Consume(
+            @NotBlank(message = "checksum is required")
+            String checksum
+    ) {}
+
+    public record EventState(
+            @NotBlank(message = "target state is required")
+            String target,
+            String result
+    ) {}
 }

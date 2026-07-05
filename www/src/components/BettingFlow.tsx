@@ -2,6 +2,9 @@ import { $, component$, useSignal, useStore } from "@builder.io/qwik";
 
 import { useStyles$ } from "@builder.io/qwik";
 
+import { getActiveUser } from "src/lib/userStore";
+import { placeBet } from "src/lib/betPlacement";
+
 import type { Category, Event } from "src/types";
 
 interface Props {
@@ -117,11 +120,12 @@ export const BettingFlow = component$<Props>(
   .slip__place:hover:not(:disabled) { background: #ffb733; }
   .slip__place:disabled { background: var(--slate-200); color: var(--ink-500); cursor: not-allowed; }
   .slip__note { font-size: var(--step--1); color: var(--ink-500); text-align: center; }
+  .slip__note[data-ok="true"] { color: var(--win, #38b000); }
+  .slip__note[data-ok="false"] { color: var(--lose, #e5484d); }
 
   @media (max-width: 560px) {
     .cat-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-`);
+  }`);
 
     const s = useStore({
       categoryId: null as number | null,
@@ -133,6 +137,10 @@ export const BettingFlow = component$<Props>(
     const eventsLoading = useSignal(false);
     const eventsError = useSignal(false);
     const selectedEvent = useSignal<Event | null>(null);
+
+    const placing = useSignal(false);
+    const placeMessage = useSignal<string | null>(null);
+    const placeOk = useSignal(false);
 
     const pickCategory = $(async (id: number) => {
       s.categoryId = id;
@@ -212,6 +220,58 @@ export const BettingFlow = component$<Props>(
       currentOdds !== null && !Number.isNaN(stake) && stake > 0
         ? (stake * currentOdds).toFixed(2)
         : null;
+
+    const submitBet = $(async () => {
+      const activeUser = getActiveUser();
+      if (!activeUser) {
+        placeMessage.value =
+          "Choose a user in the top left before placing a bet.";
+        placeOk.value = false;
+        return;
+      }
+
+      const event = selectedEvent.value;
+      if (!event || !s.selection) {
+        return;
+      }
+
+      const stakeNum = Number.parseFloat(s.stake);
+      if (Number.isNaN(stakeNum) || stakeNum <= 0) {
+        placeMessage.value = "Enter a valid stake.";
+        placeOk.value = false;
+        return;
+      }
+
+      const apiSelection =
+        s.selection === "A"
+          ? "TEAM_A_WIN"
+          : s.selection === "B"
+            ? "TEAM_B_WIN"
+            : "DRAW";
+
+      placeMessage.value = null;
+      placing.value = true;
+      try {
+        const result = await placeBet(apiBaseUrl, {
+          eventId: event.id,
+          selection: apiSelection,
+          stake: stakeNum,
+          userId: activeUser.id,
+        });
+        if (result.ok) {
+          placeOk.value = true;
+          placeMessage.value = `Bet placed and confirmed (#${result.betId}).`;
+
+          s.selection = null;
+          s.stake = "";
+        } else {
+          placeOk.value = false;
+          placeMessage.value = result.error ?? "Could not place bet.";
+        }
+      } finally {
+        placing.value = false;
+      }
+    });
 
     return (
       <div class="flow">
@@ -414,13 +474,19 @@ export const BettingFlow = component$<Props>(
               </div>
 
               <button
+                name="placeBetSubmitButton"
                 type="button"
                 class="slip__place"
                 disabled={!s.selection || s.stake.trim() === ""}
-                onClick$={() => {}}
+                onClick$={submitBet}
               >
-                Place bet
+                {placing.value ? "Placing bet . . ." : "Place bet"}
               </button>
+              {placeMessage.value && (
+                <p class="slip__note" data-ok={placeOk.value}>
+                  {placeMessage.value}
+                </p>
+              )}
             </div>
           </section>
         )}

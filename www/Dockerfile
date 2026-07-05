@@ -8,21 +8,21 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm exec astro build
+RUN pnpm build
 
 # ---- runtime ----
 FROM node:22-alpine AS runtime
 WORKDIR /app
-ENV NODE_ENV=production HOST=0.0.0.0 PORT=4321
 
-RUN corepack enable && \
-    addgroup -S app && adduser -S app -G app
+RUN addgroup -S www && \
+    adduser -S www -G www
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile --prod
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=4321
 
 COPY --from=builder /app/dist ./dist
 
-USER app
+USER www:www
 EXPOSE 4321
 CMD ["node", "./dist/server/entry.mjs"]

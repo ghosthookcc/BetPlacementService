@@ -1,0 +1,16 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AdminView from "../components/AdminView.tsx";
+
+const PUBLIC_API_BASE = import.meta.env.PUBLIC_API_URL || "http://localhost:8080";
+---
+
+<Layout title="Bet console — Admin" active="admin" showFeed={false}>
+  <div class="page-head">
+    <span class="eyebrow">Event control</span>
+    <h1>Admin</h1>
+    <p>Drive events through their lifecycle. Only actionable events appear — finishing or cancelling settles their bets.</p>
+  </div>
+
+  <AdminView apiBaseUrl={PUBLIC_API_BASE} client:load />
+</Layout>

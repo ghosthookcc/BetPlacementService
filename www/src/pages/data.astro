@@ -1,9 +1,8 @@
 ---
-import BettingView from "../components/BettingView.tsx";
 import Layout from "../layouts/Layout.astro";
+import BettingView from "../components/BettingView.tsx";
 
-const PUBLIC_API_BASE =
-  import.meta.env.PUBLIC_API_URL ?? "http://localhost:8080";
+const PUBLIC_API_BASE = import.meta.env.PUBLIC_API_URL || "http://localhost:8080";
 ---
 
 <Layout title="Bet console - Data" active="data" showFeed={false}>

@@ -5,7 +5,7 @@ import UserSelector from "../components/UserSelector.tsx";
 
 interface Props {
   title?: string;
-  active?: "index" | "data" | "history";
+  active?: "index" | "data" | "history" | "admin";
   showFeed?: boolean;
 }
 const {
@@ -14,17 +14,17 @@ const {
   showFeed = true,
 } = Astro.props;
 
-const PUBLIC_API_BASE =
-  import.meta.env.PUBLIC_API_URL ?? "http://localhost:8080";
-
 const links = [
   { key: "index", href: "/", label: "Index" },
   { key: "data", href: "/data", label: "Data" },
   { key: "history", href: "/history", label: "History" },
+  { key: "admin", href: "/admin", label: "Admin" }
 ] as const;
 
 const fontSpaceGroteskHref =
   "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap";
+
+const PUBLIC_API_BASE = import.meta.env.PUBLIC_API_URL || "http://localhost:8080";
 ---
 
 <!doctype html>

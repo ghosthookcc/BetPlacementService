@@ -1,5 +1,7 @@
 package com.betting.api.service;
 
+import com.betting.api.repository.SettlementRepository;
+import com.betting.api.types.BetState;
 import com.betting.api.types.EventState;
 import com.betting.api.types.Selection;
 
@@ -10,6 +12,7 @@ import com.betting.api.repository.UserAccountRepository;
 import dto.Request;
 import dto.Response;
 
+import entity.Settlement;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,16 +24,46 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class BetService {
-
+public class BetService
+{
     private final BetRepository bets;
     private final EventRepository events;
     private final UserAccountRepository users;
+    private final SettlementRepository settlements;
 
-    public BetService(BetRepository bets, EventRepository events, UserAccountRepository users) {
+    public BetService(BetRepository bets, EventRepository events, UserAccountRepository users, SettlementRepository settlements)
+    {
         this.bets = bets;
         this.events = events;
         this.users = users;
+        this.settlements = settlements;
+    }
+
+    @Transactional
+    public Response.Consume consume(String checksum)
+    {
+        entity.Bet bet = bets.findByChecksum(checksum)
+                             .orElseThrow(() -> ApiException.notFound("No bet for the provided checksum"));
+
+        if (bet.getState() == BetState.CONSUMED || bet.getState() == BetState.SETTLED)
+        {
+            return new Response.Consume(bet.getId(),
+                                        bet.getState().toString(),
+                                        true);
+        }
+
+        if (bet.getState() != BetState.PENDING)
+        {
+            throw ApiException.conflict("Bet can no longer be consumed (state " + bet.getState() + ")");
+        }
+
+        if (settlements.findByBetId(bet.getId()).isEmpty())
+        {
+            settlements.save(Settlement.waitingFor(bet.getId()));
+        }
+        bet.markConsumed();
+
+        return new Response.Consume(bet.getId(), BetState.CONSUMED.toString(), false);
     }
 
     @Transactional

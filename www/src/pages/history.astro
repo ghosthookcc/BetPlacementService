@@ -1,9 +1,8 @@
 ---
-import HistoryView from "../components/HistoryView.tsx";
 import Layout from "../layouts/Layout.astro";
+import HistoryView from "../components/HistoryView.tsx";
 
-const PUBLIC_API_BASE =
-  import.meta.env.PUBLIC_API_URL ?? "http://localhost:8080";
+const PUBLIC_API_BASE = import.meta.env.PUBLIC_API_URL || "http://localhost:8080";
 ---
 
 <Layout title="Bet console - History" active="history" showFeed={false}>

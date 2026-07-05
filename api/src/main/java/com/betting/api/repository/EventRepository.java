@@ -10,5 +10,7 @@ import java.util.UUID;
 public interface EventRepository extends JpaRepository<entity.Event, UUID>
 {
     List<entity.Event> findByCategoryIdAndStateOrderByStartsAtAsc(Long categoryId, EventState state);
+    List<entity.Event> findByStateInOrderByStartsAtAsc(List<EventState> states);
+    List<entity.Event> findAllByOrderByStartsAtAsc();
     List<entity.Event> findByIdIn(List<UUID> ids);
 }

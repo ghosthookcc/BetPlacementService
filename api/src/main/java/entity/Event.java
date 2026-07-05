@@ -79,6 +79,8 @@ public class Event
         return state;
     }
 
+    public void setState(EventState state) { this.state = state;}
+
     public OffsetDateTime getStartsAt() {
         return startsAt;
     }

@@ -110,4 +110,18 @@ public final class Response extends Dto
     public record User(Long id,
                        String fullName
     ) {}
+
+    public record Consume(
+            Long betId,
+            String state,
+            boolean alreadyConsumed
+    ) {}
+
+    public record EventState(
+            String eventId,
+            String newState,
+            int betsSettled,
+            int betsVoided,
+            int betsExpired
+    ) {}
 }

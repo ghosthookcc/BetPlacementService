@@ -2,7 +2,8 @@ package com.betting.api.types;
 
 public enum BetState
 {
-    CREATED,
+    PENDING,
     CONSUMED,
-    SETTLED
+    SETTLED,
+    EXPIRED
 }

@@ -31,8 +31,8 @@ CREATE TABLE bets (
     stake       NUMERIC(12,2) NOT NULL CHECK (stake > 0),
     selection   TEXT          NOT NULL CHECK (selection IN ('TEAM_A_WIN', 'TEAM_B_WIN', 'DRAW')),
     odds        NUMERIC(6,2)  NOT NULL CHECK (odds >= 1),
-    state       TEXT          NOT NULL DEFAULT 'CREATED'
-                              CHECK (state IN ('CREATED', 'CONSUMED', 'SETTLED')),
+    state       TEXT          NOT NULL DEFAULT 'PENDING'
+                              CHECK (state IN ('PENDING', 'CONSUMED', 'SETTLED', 'EXPIRED')),
     created_at  TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
@@ -65,11 +65,11 @@ INSERT INTO categories (name, glyph) VALUES
 INSERT INTO events (category_id, team_a, team_b, odds_team_a, odds_draw, odds_team_b, state, starts_at)
 SELECT c.id, v.team_a, v.team_b, v.odds_a, v.odds_d, v.odds_b, v.state, v.starts_at
 FROM (VALUES
-    ('Football',   'Arsenal',       'Chelsea',        2.10, 3.40, 3.20, 'LIVE',     now() - interval '20 minutes'),
+    ('Football',   'Arsenal',       'Chelsea',        2.10, 3.40, 3.20, 'LIVE',     now() + interval '20 minutes'),
     ('Football',   'Liverpool',     'Man City',       2.75, 3.30, 2.45, 'UPCOMING', now() + interval '2 hours'),
-    ('Basketball', 'Lakers',        'Celtics',        1.85, 15.0, 1.95, 'LIVE',     now() - interval '10 minutes'),
+    ('Basketball', 'Lakers',        'Celtics',        1.85, 15.0, 1.95, 'LIVE',     now() + interval '10 minutes'),
     ('Basketball', 'Warriors',      'Nuggets',        2.30, 21.0, 1.62, 'UPCOMING', now() + interval '3 hours'),
     ('Tennis',     'Alcaraz',       'Sinner',         1.72, 25.0, 2.10, 'UPCOMING', now() + interval '1 hours'),
-    ('Esports',    'NAVI',          'FaZe',           1.90, 30.0, 1.90, 'LIVE',     now() - interval '5 minutes')
+    ('Esports',    'NAVI',          'FaZe',           1.90, 30.0, 1.90, 'LIVE',     now() + interval '5 minutes')
 ) AS v(cat, team_a, team_b, odds_a, odds_d, odds_b, state, starts_at)
 JOIN categories c ON c.name = v.cat;

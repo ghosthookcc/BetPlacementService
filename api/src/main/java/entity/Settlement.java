@@ -36,6 +36,21 @@ public class Settlement
 
     protected Settlement() { }
 
+    public static Settlement waitingFor(Long betId)
+    {
+        Settlement settlement = new Settlement();
+        settlement.betId = betId;
+        settlement.payout = BigDecimal.ZERO;
+        settlement.state = SettlementState.WAITING;
+        return settlement;
+    }
+
+    public void resolve(SettlementState finalState, BigDecimal payout)
+    {
+        this.state = finalState;
+        this.payout = payout;
+    }
+
     public Long getId() { return id; }
 
     public Long getBetId() { return betId; }

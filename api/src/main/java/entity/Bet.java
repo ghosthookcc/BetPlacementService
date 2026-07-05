@@ -53,20 +53,26 @@ public class Bet
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    protected Bet() {}
+
     public static Bet placed(Long userId, UUID eventId, String requestId, String checksum,
                              BigDecimal stake, Selection selection, BigDecimal odds)
     {
-        Bet b = new Bet();
-        b.userId = userId;
-        b.eventId = eventId;
-        b.requestId = requestId;
-        b.checksum = checksum;
-        b.stake = stake;
-        b.selection = selection;
-        b.odds = odds;
-        b.state = BetState.CREATED;
-        return b;
+        Bet bet = new Bet();
+        bet.userId = userId;
+        bet.eventId = eventId;
+        bet.requestId = requestId;
+        bet.checksum = checksum;
+        bet.stake = stake;
+        bet.selection = selection;
+        bet.odds = odds;
+        bet.state = BetState.PENDING;
+        return bet;
     }
+
+    public void markConsumed() { this.state = BetState.CONSUMED; }
+    public void markSettled() { this.state = BetState.SETTLED; }
+    public void markExpired() { this.state = BetState.EXPIRED; }
 
     public Long getId() {
         return id;

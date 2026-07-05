@@ -20,11 +20,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/bets")
-public class BetController {
-
+public class BetController
+{
     private final BetService betService;
 
-    public BetController(BetService betService) {
+    public BetController(BetService betService)
+    {
         this.betService = betService;
     }
 
@@ -47,7 +48,14 @@ public class BetController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Response.PlacedBet place(@Valid @RequestBody Request.PlaceBet request) {
+    public Response.PlacedBet place(@Valid @RequestBody Request.PlaceBet request)
+    {
         return betService.place(request);
+    }
+
+    @PostMapping("/consume")
+    public Response.Consume consume(@Valid @RequestBody Request.Consume request)
+    {
+        return betService.consume(request.checksum());
     }
 }
