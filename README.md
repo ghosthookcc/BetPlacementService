@@ -1,6 +1,6 @@
 # BetPlacementService
 
-A full-stack bet placement service built to explore idempotent
+A fullstack bet placement service built to explore idempotent
 request handling and an event-driven settlement lifecycle.
 
 **Stack:** PostgreSQL 18 · Spring Boot 4 (Java 21) · Astro + Qwik frontend · Docker Compose.
@@ -18,10 +18,10 @@ PENDING  ->  CONSUMED  ->  SETTLED
    +------>  EXPIRED   (reaped if never consumed in time)
 ```
 
-- **PENDING** — placed, awaiting the client's acknowledgment (checksum).
-- **CONSUMED** — client acknowledged; a settlement row is created, awaiting the event result.
-- **SETTLED** — the event finished (or was cancelled); payout resolved.
-- **EXPIRED** — never consumed before its timeout; marked EXPIRED, then deleted by a scheduled reaper.
+- **PENDING** - placed, awaiting the client's acknowledgment (checksum).
+- **CONSUMED** - client acknowledged; a settlement row is created, awaiting the event result.
+- **SETTLED** - the event finished (or was cancelled); payout resolved.
+- **EXPIRED** - never consumed before its timeout; marked EXPIRED, then deleted by a scheduled reaper.
 
 Settlement is **event-driven**: when an event transitions to `FINISHED` (with a
 result) or `CANCELLED`, all of its consumed bets are settled in one transaction —
@@ -88,7 +88,7 @@ Base URL: `http://localhost:8080`
 | GET    | `/api/bets?userId={id}`            | Bets, optionally filtered by user (omit for all).       |
 | GET    | `/api/settlements?userId={id}`     | Settlements, optionally filtered by user.               |
 
-### Writes — the bet lifecycle
+### Writes -the bet lifecycle
 
 | Method | Path                          | Description                                                              |
 |--------|-------------------------------|--------------------------------------------------------------------------|
@@ -136,7 +136,7 @@ curl -X POST http://localhost:8080/api/bets \
   -d '{"userId":1,"eventId":"<EVENT_UUID>","selection":"TEAM_A_WIN","stake":25.00,"requestId":"demo-1"}'
 
 # 3. Prove idempotency: run step 2 again with the SAME requestId.
-#    You get the SAME bet back (same id, same checksum) — no duplicate.
+#    You get the SAME bet back (same id, same checksum) -no duplicate.
 
 # 4. Consume (acknowledge) using the checksum -> bet becomes CONSUMED.
 curl -X POST http://localhost:8080/api/bets/consume \
@@ -161,7 +161,7 @@ finish or cancel events and watch the settlements resolve on the **History** pag
 ## Proving it works with Postman
 
 A Postman collection in `postman-test/` runs the full lifecycle automatically and
-**proves the idempotency requirement** — it places the same request twice and
+**proves the idempotency requirement**, it places the same request twice and
 asserts the same bet is returned, with no duplicate created.
 
 ### 1. Install Postman
@@ -172,7 +172,7 @@ asserts the same bet is returned, with no duplicate created.
   sudo snap install postman
   ```
 
-You can use Postman without creating an account — on the launch screen, choose
+You can use Postman without creating an account, on the launch screen, choose
 **"Skip and go to the app"** (or similar) to use it locally.
 
 ### 2. Import the collection
@@ -206,13 +206,13 @@ UPCOMING event, places a bet, and carries the checksum through).
 
 The steps marked **★** are the key proofs:
 
-- **★ Place bet AGAIN — same request_id:** the second placement returns the
-  **same bet id and checksum** as the first. This is the idempotency proof — a
+- **★ Place bet AGAIN, same request_id:** the second placement returns the
+  **same bet id and checksum** as the first. This is the idempotency proof, a
   duplicate request produced no duplicate bet.
-- **★ Consume AGAIN — same checksum:** consuming twice is a safe no-op
-  (`alreadyConsumed: true`) — no second settlement.
+- **★ Consume AGAIN, same checksum:** consuming twice is a safe no-op
+  (`alreadyConsumed: true`), no second settlement.
 - **★ Illegal transition rejected:** finishing an already-finished event returns
-  `400` — the state machine holds.
+  `400`, the state machine holds.
 - **★ Settlement verified:** the finished bet settles as **WON** with
   **payout**.
 
