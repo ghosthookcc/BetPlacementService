@@ -36,12 +36,13 @@ public class BetController {
     }
 
     @GetMapping
-    public List<Response.BetSummary> all(@RequestParam(defaultValue = "0") int page,
+    public List<Response.BetSummary> all(@RequestParam(required = false) Long userId,
+                                         @RequestParam(defaultValue = "0") int page,
                                          @RequestParam(defaultValue = "50") int size)
     {
         int cappedSize = Math.max(1, Math.min(size, 200));
         int safePage = Math.max(0, page);
-        return betService.allNewestFirst(safePage, cappedSize);
+        return betService.allNewestFirst(userId, safePage, cappedSize);
     }
 
     @PostMapping

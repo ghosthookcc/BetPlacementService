@@ -20,9 +20,6 @@ public class UserAccount
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
-    private OffsetDateTime createdAt;
-
     protected UserAccount() { }
 
     public Long getId() {
@@ -31,9 +28,5 @@ public class UserAccount
 
     public String getFullName() {
         return fullName;
-    }
-
-    public OffsetDateTime getCreatedAt() {
-        return createdAt;
     }
 }

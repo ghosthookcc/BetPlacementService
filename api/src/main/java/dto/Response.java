@@ -106,4 +106,8 @@ public final class Response extends Dto
             String state,
             OffsetDateTime settledAt
     ) {}
+
+    public record User(Long id,
+                       String fullName
+    ) {}
 }

@@ -14,13 +14,16 @@ const {
   showFeed = true,
 } = Astro.props;
 
+const PUBLIC_API_BASE =
+  import.meta.env.PUBLIC_API_URL ?? "http://localhost:8080";
+
 const links = [
   { key: "index", href: "/", label: "Index" },
   { key: "data", href: "/data", label: "Data" },
   { key: "history", href: "/history", label: "History" },
 ] as const;
 
-const fontHref =
+const fontSpaceGroteskHref =
   "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap";
 ---
 
@@ -29,10 +32,13 @@ const fontHref =
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>{title}</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href={fontHref} />
+
+    <link rel="stylesheet" href={fontSpaceGroteskHref} />
   </head>
   <body>
     <div class={showFeed ? "shell" : "shell no-feed"}>
@@ -42,11 +48,10 @@ const fontHref =
           <div class="nav__brand-sub eyebrow">stake terminal</div>
         </div>
 
-        <UserSelector client:load />
+        <UserSelector apiBaseUrl={PUBLIC_API_BASE} client:load />
 
         <div class="nav__links">
-          {
-            links.map((l) => (
+          {links.map((l) => (
               <a
                 class="nav__link"
                 href={l.href}
@@ -65,7 +70,7 @@ const fontHref =
           <div class="eyebrow">session</div>
           <div
             class="mono"
-            style="color:var(--ink-300); font-size:var(--step--1); margin-top:0.3rem;"
+            style="color: var(--ink-300); font-size: var(--step--1); margin-top: 0.3rem;"
           >
             local · dev
           </div>
@@ -93,7 +98,7 @@ const fontHref =
                 </span>
               </div>
             </div>
-            <HistoryFeed client:load />
+            <HistoryFeed apiBaseUrl={PUBLIC_API_BASE} client:load />
           </aside>
         )
       }

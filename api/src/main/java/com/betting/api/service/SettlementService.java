@@ -34,11 +34,27 @@ public class SettlementService
         this.events = events;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly=true)
     public List<Response.Settlement> latest(int limit)
     {
+        return latest(null, limit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Response.Settlement> latest(Long userId, int limit)
+    {
         Pageable page = PageRequest.of(0, limit);
-        List<entity.Settlement> rows = settlements.findAllByOrderByCreatedAtDescIdDesc(page);
+        List<entity.Settlement> rows;
+        if (userId == null)
+        {
+            rows = settlements.findAllByOrderByCreatedAtDescIdDesc(page);
+        }
+        else
+        {
+            List<Long> userBetIds = bets.findIdsByUserId(userId);
+            if (userBetIds.isEmpty()) return List.of();
+            rows = settlements.findByBetIdInOrderByCreatedAtDescIdDesc(userBetIds, page);
+        }
         if (rows.isEmpty()) return List.of();
 
         List<Long> betIds = rows.stream().map(entity.Settlement::getBetId).distinct().toList();

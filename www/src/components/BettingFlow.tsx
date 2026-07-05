@@ -1,4 +1,4 @@
-import { $, component$, useStore } from "@builder.io/qwik";
+import { $, component$, useSignal, useStore } from "@builder.io/qwik";
 
 import { useStyles$ } from "@builder.io/qwik";
 
@@ -8,17 +8,29 @@ export interface Category {
   glyph: string | null;
 }
 
+export interface Event {
+  id: string; // UUID
+  categoryId: number;
+  teamA: string;
+  teamB: string;
+  oddsTeamA: number;
+  oddsDraw: number;
+  oddsTeamB: number;
+  state: string;
+  startsAt: string | null;
+}
+
 interface Props {
   categories: Category[];
+  apiBaseUrl: string;
   loadError?: boolean;
 }
 
-const PLACEHOLDER_EVENTS = [0, 1, 2, 3];
-
 type Selection = "A" | "draw" | "B" | null;
 
-export const BettingFlow = component$<Props>(({ categories, loadError }) => {
-  useStyles$(`
+export const BettingFlow = component$<Props>(
+  ({ categories, apiBaseUrl, loadError }) => {
+    useStyles$(`
   .flow { display: flex; flex-direction: column; gap: 1.5rem; }
 
   .flow__crumbs { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
@@ -38,7 +50,6 @@ export const BettingFlow = component$<Props>(({ categories, loadError }) => {
 
   .flow__step-head { margin-bottom: 0.75rem; }
 
-  /* Category grid */
   .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; }
   .cat {
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem;
@@ -51,7 +62,6 @@ export const BettingFlow = component$<Props>(({ categories, loadError }) => {
   .cat__glyph { font-size: 1.4rem; }
   .cat__label { font-family: var(--font-display); font-weight: 600; }
 
-  /* Event list */
   .ev-list { display: flex; flex-direction: column; gap: 0.5rem; }
   .ev {
     display: grid;
@@ -62,14 +72,24 @@ export const BettingFlow = component$<Props>(({ categories, loadError }) => {
   }
   .ev:hover { border-color: var(--slate-200); }
   .ev[data-active="true"] { border-color: var(--amber); background: var(--amber-wash); }
-  .ev__live { width: 7px; height: 7px; border-radius: 50%; background: var(--live); }
-  .ev__teams { display: flex; align-items: center; gap: 0.55rem; }
+  .ev__live { width: 7px; height: 7px; border-radius: 50%; background: var(--live); flex: none; }
+  .ev__teams { display: flex; align-items: center; gap: 0.55rem; min-width: 0; }
   .ev__team { font-weight: 500; }
   .ev__vs { color: var(--ink-500); font-size: var(--step--1); }
   .ev__meta { color: var(--ink-500); font-size: var(--step--1); }
   .ev__go { color: var(--ink-500); font-size: 1.2rem; }
 
-  /* Slip */
+  .ev--skeleton { cursor: default; pointer-events: none; }
+  .skeleton-bar {
+    display: inline-block; height: 0.9rem; width: 180px; border-radius: 3px;
+    background: linear-gradient(90deg, var(--slate-100), var(--slate-150), var(--slate-100));
+    background-size: 200% 100%; animation: shimmer 1.2s infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
   .slip {
     max-width: 480px;
     background: var(--slate-050); border: 1px solid var(--slate-150);
@@ -85,12 +105,15 @@ export const BettingFlow = component$<Props>(({ categories, loadError }) => {
 
   .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
   .seg__opt {
+    display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
     background: var(--slate-100); border: 1px solid var(--slate-200);
     border-radius: var(--radius); padding: 0.6rem 0.5rem; cursor: pointer;
     color: var(--ink-300); font: inherit; font-weight: 500;
   }
   .seg__opt:hover { color: var(--ink-100); }
   .seg__opt[data-active="true"] { border-color: var(--amber); color: var(--amber); background: var(--amber-wash); }
+  .seg__odds { font-size: var(--step--1); color: var(--ink-500); }
+  .seg__opt[data-active="true"] .seg__odds { color: var(--amber); }
 
   .stake { display: flex; align-items: center; gap: 0.5rem; background: var(--slate-100); border: 1px solid var(--slate-200); border-radius: var(--radius); padding: 0.2rem 0.7rem; }
   .stake:focus-within { border-color: var(--amber-dim); }
@@ -98,6 +121,9 @@ export const BettingFlow = component$<Props>(({ categories, loadError }) => {
   .stake__input { flex: 1; background: transparent; border: none; color: var(--ink-100); font-size: var(--step-2); padding: 0.5rem 0; }
   .stake__input:focus { outline: none; }
   .stake__input::placeholder { color: var(--slate-200); }
+
+  .payout { font-size: var(--step-0); color: var(--ink-300); }
+  .payout strong { color: var(--amber); }
 
   .slip__place {
     background: var(--amber); color: #1a1305; border: none;
@@ -110,218 +136,313 @@ export const BettingFlow = component$<Props>(({ categories, loadError }) => {
 
   @media (max-width: 560px) {
     .cat-grid { grid-template-columns: repeat(2, 1fr); }
-  }`);
+  }
+`);
 
-  const s = useStore({
-    categoryId: null as number | null,
-    event: null as number | null,
-    selection: null as Selection,
-    stake: "" as string | "",
-  });
+    const s = useStore({
+      categoryId: null as number | null,
+      selection: null as Selection,
+      stake: "" as string | "",
+    });
 
-  const pickCategory = $((id: number) => {
-    s.categoryId = id;
-    s.event = null;
-    s.selection = null;
-    s.stake = "";
-  });
-  const pickEvent = $((id: number) => {
-    s.event = id;
-    s.selection = null;
-    s.stake = "";
-  });
-  const reset = $(() => {
-    s.categoryId = null;
-    s.event = null;
-    s.selection = null;
-    s.stake = "";
-  });
+    const events = useSignal<Event[]>([]);
+    const eventsLoading = useSignal(false);
+    const eventsError = useSignal(false);
+    const selectedEvent = useSignal<Event | null>(null);
 
-  const setStakesInput = $((newStake: string) => {
-    s.stake = newStake;
-  });
-  const changeBetSelectionInput = $((newSelection: Selection) => {
-    s.selection = newSelection;
-  });
+    const pickCategory = $(async (id: number) => {
+      s.categoryId = id;
+      selectedEvent.value = null;
+      s.selection = null;
+      s.stake = "";
 
-  const returnToCategoryBetPlacementStep = $(() => {
-    s.event = null;
-    return s.categoryId;
-  });
+      eventsError.value = false;
+      eventsLoading.value = true;
+      events.value = [];
+      try {
+        const response = await fetch(
+          `${apiBaseUrl}/api/categories/${id}/events`,
+        );
+        if (response.ok) {
+          events.value = (await response.json()) as Event[];
+        } else {
+          eventsError.value = true;
+        }
+      } catch {
+        eventsError.value = true;
+      } finally {
+        eventsLoading.value = false;
+      }
+    });
 
-  const categoryLabel = categories.find((c) => c.id === s.categoryId)?.name ?? "";
+    const pickEvent = $((event: Event) => {
+      selectedEvent.value = event;
+      s.selection = null;
+      s.stake = "";
+    });
+    const reset = $(() => {
+      s.categoryId = null;
+      selectedEvent.value = null;
+      events.value = [];
+      s.selection = null;
+      s.stake = "";
+    });
 
-  return (
-    <div class="flow">
-      <div class="flow__crumbs">
-        <button
-          type="button"
-          class="crumb"
-          data-active={s.categoryId === null}
-          onClick$={reset}
-        >
-          <span class="crumb__n mono">1</span> Category
-        </button>
-        <span class="crumb__sep">/</span>
-        <button
-          type="button"
-          class="crumb"
-          data-active={s.categoryId !== null && s.event === null}
-          data-disabled={s.categoryId === null}
-          onClick$={() => returnToCategoryBetPlacementStep()}
-        >
-          <span class="crumb__n mono">2</span> Event
-        </button>
-        <span class="crumb__sep">/</span>
-        <span
-          class="crumb"
-          data-active={s.event !== null}
-          data-disabled={s.event === null}
-        >
-          <span class="crumb__n mono">3</span> Place bet
-        </span>
-      </div>
+    const backToEvents = $(() => {
+      selectedEvent.value = null;
+      s.selection = null;
+      s.stake = "";
+    });
 
-      <section class="flow__step">
-        <header class="flow__step-head">
-          <span class="eyebrow">Step 1 — pick a category</span>
-        </header>
-        {loadError ? (
-          <div class="empty">
-            <strong>Couldn't load categories</strong>
-            The betting service isn't reachable right now. Try refreshing.
-          </div>
-        ) : categories.length === 0 ? (
-          <div class="empty">
-            <strong>No categories available</strong>
-            There's nothing to bet on yet.
-          </div>
-        ) : (
-          <div class="cat-grid">
-            {categories.map((c) => (
-              <button
-                type="button"
-                key={c.id}
-                class="cat"
-                data-active={s.categoryId === c.id}
-                onClick$={() => pickCategory(c.id)}
-              >
-                <span class="cat__glyph">{c.glyph}</span>
-                <span class="cat__label">{c.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
+    const setStakesInput = $((newStake: string) => {
+      s.stake = newStake;
+    });
+    const changeBetSelectionInput = $((newSelection: Selection) => {
+      s.selection = newSelection;
+    });
 
-      {s.categoryId !== null && (
+    const categoryLabel =
+      categories.find((c) => c.id === s.categoryId)?.name ?? "";
+    const event = selectedEvent.value;
+
+    const oddsForSelection = (
+      event: Event,
+      selection: Selection,
+    ): number | null => {
+      if (selection === "A") {
+        return event.oddsTeamA;
+      }
+      if (selection === "draw") {
+        return event.oddsDraw;
+      }
+      if (selection === "B") {
+        return event.oddsTeamB;
+      }
+      return null;
+    };
+
+    const currentOdds = event ? oddsForSelection(event, s.selection) : null;
+    const stake = Number.parseFloat(s.stake);
+
+    const potential =
+      currentOdds !== null && !Number.isNaN(stake) && stake > 0
+        ? (stake * currentOdds).toFixed(2)
+        : null;
+
+    return (
+      <div class="flow">
+        <div class="flow__crumbs">
+          <button
+            type="button"
+            class="crumb"
+            data-active={s.categoryId === null}
+            onClick$={reset}
+          >
+            <span class="crumb__n mono">1</span> Category
+          </button>
+          <span class="crumb__sep">/</span>
+          <button
+            type="button"
+            class="crumb"
+            data-active={s.categoryId !== null && event === null}
+            data-disabled={s.categoryId === null}
+            onClick$={() => backToEvents}
+          >
+            <span class="crumb__n mono">2</span> Event
+          </button>
+          <span class="crumb__sep">/</span>
+          <span
+            class="crumb"
+            data-active={event !== null}
+            data-disabled={event === null}
+          >
+            <span class="crumb__n mono">3</span> Place bet
+          </span>
+        </div>
+
         <section class="flow__step">
           <header class="flow__step-head">
-            <span class="eyebrow">
-              Step 2 — ongoing {categoryLabel.toLowerCase()} events
-            </span>
+            <span class="eyebrow">Step 1 — pick a category</span>
           </header>
-          <div class="ev-list">
-            {PLACEHOLDER_EVENTS.map((idx) => (
-              <button
-                type="button"
-                key={idx}
-                class="ev"
-                data-active={s.event === idx}
-                onClick$={() => pickEvent(idx)}
-              >
-                <span class="ev__live" />
-                <span class="ev__teams">
-                  <span class="ev__team">Team A</span>
-                  <span class="ev__vs">vs</span>
-                  <span class="ev__team">Team B</span>
-                </span>
-                <span class="ev__meta mono">— · —</span>
-                <span class="ev__go">›</span>
-              </button>
-            ))}
-          </div>
+          {loadError ? (
+            <div class="empty">
+              <strong>Couldn't load categories</strong>
+              The betting service isn't reachable right now. Try refreshing.
+            </div>
+          ) : categories.length === 0 ? (
+            <div class="empty">
+              <strong>No categories available</strong>
+              There's nothing to bet on yet.
+            </div>
+          ) : (
+            <div class="cat-grid">
+              {categories.map((c) => (
+                <button
+                  type="button"
+                  key={c.id}
+                  class="cat"
+                  data-active={s.categoryId === c.id}
+                  onClick$={() => pickCategory(c.id)}
+                >
+                  <span class="cat__glyph">{c.glyph ?? "•"}</span>
+                  <span class="cat__label">{c.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
-      )}
 
-      {s.event !== null && (
-        <section class="flow__step">
-          <header class="flow__step-head">
-            <span class="eyebrow">Step 3 — place your bet</span>
-          </header>
-
-          <div class="slip">
-            <div class="slip__match">
-              <span class="tag">{categoryLabel}</span>
-              <span class="slip__teams">
-                Team A <span class="slip__vs">vs</span> Team B
+        {s.categoryId !== null && (
+          <section class="flow__step">
+            <header class="flow__step-head">
+              <span class="eyebrow">
+                Step 2 — ongoing {categoryLabel.toLowerCase()} events
               </span>
-            </div>
+            </header>
 
-            <div class="field">
-              <label for="placeBetButton" class="field__label">
-                Selection
-              </label>
-              <div class="seg">
-                <button
-                  type="button"
-                  class="seg__opt"
-                  data-active={s.selection === "A"}
-                  onClick$={() => changeBetSelectionInput("A")}
-                >
-                  Team A win
-                </button>
-                <button
-                  type="button"
-                  class="seg__opt"
-                  data-active={s.selection === "draw"}
-                  onClick$={() => changeBetSelectionInput("draw")}
-                >
-                  Draw
-                </button>
-                <button
-                  type="button"
-                  class="seg__opt"
-                  data-active={s.selection === "B"}
-                  onClick$={() => changeBetSelectionInput("B")}
-                >
-                  Team B win
-                </button>
+            {eventsLoading.value ? (
+              <div class="ev-list">
+                {[0, 1, 2].map((idx) => (
+                  <div key={idx} class="ev ev--skeleton">
+                    <span class="ev__live" />
+                    <span class="ev__teams">
+                      <span class="skeleton-bar" />
+                    </span>
+                  </div>
+                ))}
               </div>
-            </div>
-
-            <div class="field">
-              <label class="field__label" for="stake">
-                Stake
-              </label>
-              <div class="stake">
-                <span class="stake__cur mono">¤</span>
-                <input
-                  id="stake"
-                  class="stake__input mono"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  value={s.stake}
-                  onInput$={(_, element) => setStakesInput(element.value)}
-                />
+            ) : eventsError.value ? (
+              <div class="empty">
+                <strong>Couldn't load events</strong>
+                The betting service isn't reachable right now.
               </div>
-            </div>
+            ) : events.value.length === 0 ? (
+              <div class="empty">
+                <strong>No upcoming events</strong>
+                There's nothing to bet on in {categoryLabel.toLowerCase()} right
+                now.
+              </div>
+            ) : (
+              <div class="ev-list">
+                {events.value.map((e) => (
+                  <button
+                    type="button"
+                    key={e.id}
+                    class="ev"
+                    data-active={event?.id === e.id}
+                    onClick$={() => pickEvent(e)}
+                  >
+                    <span class="ev__live" />
+                    <span class="ev__teams">
+                      <span class="ev__team">{e.teamA}</span>
+                      <span class="ev__vs">vs</span>
+                      <span class="ev__team">{e.teamB}</span>
+                    </span>
+                    <span class="ev__meta mono">
+                      {e.oddsTeamA.toFixed(2)} · {e.oddsDraw.toFixed(2)} ·{" "}
+                      {e.oddsTeamB.toFixed(2)}
+                    </span>
+                    <span class="ev__go">›</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-            <button
-              name="placeBetButton"
-              type="button"
-              class="slip__place"
-              disabled={!s.selection || s.stake.trim() === ""}
-              onClick$={() => {}}
-            >
-              Place bet
-            </button>
-            <p class="slip__note">Placing bets is wired up in a later step.</p>
-          </div>
-        </section>
-      )}
-    </div>
-  );
-});
+        {event !== null && (
+          <section class="flow__step">
+            <header class="flow__step-head">
+              <span class="eyebrow">Step 3 - place your bet</span>
+            </header>
+
+            <div class="slip">
+              <div class="slip__match">
+                <span class="tag">{categoryLabel}</span>
+                <span class="slip__teams">
+                  {event.teamA}
+                  <span class="slip__vs">vs</span>
+                  {event.teamB}
+                </span>
+              </div>
+
+              <div class="field">
+                <label for="placeBetSubmitButton" class="field__label">
+                  Selection
+                </label>
+                <div class="seg">
+                  <button
+                    type="button"
+                    class="seg__opt"
+                    data-active={s.selection === "A"}
+                    onClick$={() => changeBetSelectionInput("A")}
+                  >
+                    {event.teamA} win
+                    <span class="seg__odds mono">
+                      {event.oddsTeamA.toFixed(2)}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="seg__opt"
+                    data-active={s.selection === "draw"}
+                    onClick$={() => changeBetSelectionInput("draw")}
+                  >
+                    Draw
+                    <span class="seg__odds mono">
+                      {event.oddsDraw.toFixed(2)}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    class="seg__opt"
+                    data-active={s.selection === "B"}
+                    onClick$={() => changeBetSelectionInput("B")}
+                  >
+                    {event.teamB} win
+                    <span class="seg__odds mono">
+                      {event.oddsTeamB.toFixed(2)}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="stake">
+                  Stake
+                </label>
+                <div class="stake">
+                  <span class="stake__cur mono">SEK</span>
+                  <input
+                    id="stake"
+                    class="stake__input mono"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={s.stake}
+                    onInput$={(_, element) => setStakesInput(element.value)}
+                  />
+                </div>
+                {potential !== null && (
+                  <div class="payout mono">
+                    Potential payout: <strong>SEK{potential}</strong>
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                class="slip__place"
+                disabled={!s.selection || s.stake.trim() === ""}
+                onClick$={() => {}}
+              >
+                Place bet
+              </button>
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  },
+);
 
 export default BettingFlow;

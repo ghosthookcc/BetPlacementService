@@ -8,4 +8,5 @@ import java.util.List;
 public interface SettlementRepository extends JpaRepository<entity.Settlement, Long>
 {
     List<entity.Settlement> findAllByOrderByCreatedAtDescIdDesc(Pageable pageable);
+    List<entity.Settlement> findByBetIdInOrderByCreatedAtDescIdDesc(List<Long> betIds, Pageable pageable);
 }

@@ -52,7 +52,7 @@ public class BetService {
         if (!users.existsById(request.userId())) throw ApiException.notFound("No user with id " + request.userId());
 
         entity.Event event = events.findById(request.eventId())
-                                             .orElseThrow(() -> ApiException.notFound("No event with id " + request.eventId()));
+                                   .orElseThrow(() -> ApiException.notFound("No event with id " + request.eventId()));
         if (event.getState() != EventState.UPCOMING)
         {
             throw ApiException.badRequest("Event " + event.getId() + " is not open for betting");
@@ -88,13 +88,30 @@ public class BetService {
                                                    users, events);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly=true)
     public List<Response.BetSummary> allNewestFirst(int page, int size)
     {
-        Pageable pageable = PageRequest.of(page, size,
-                                           org.springframework.data.domain.Sort.by("createdAt", "id").descending());
-        List<entity.Bet> rows = bets.findAll(pageable).getContent();
+        return allNewestFirst(null, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Response.BetSummary> allNewestFirst(Long userId, int page, int size)
+    {
+        List<entity.Bet> rows;
+        if (userId == null) {
+            Pageable pageable = PageRequest.of(page, size,
+                    org.springframework.data.domain.Sort.by("createdAt", "id").descending());
+            rows = bets.findAll(pageable).getContent();
+        }
+        else
+        {
+            Pageable pageable = PageRequest.of(page, size);
+            rows = bets.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable);
+        }
+
         return Response.BetSummary.summaryFromRows(rows,
                                                    users, events);
     }
+
+
 }

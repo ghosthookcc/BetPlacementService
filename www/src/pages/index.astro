@@ -1,27 +1,22 @@
 ---
-import Layout from "../layouts/Layout.astro";
 import BettingFlow from "../components/BettingFlow.tsx";
+import Layout from "../layouts/Layout.astro";
 
 const API_BASE = import.meta.env.API_BASE_URL ?? "http://localhost:8080";
+const PUBLIC_API_BASE =
+  import.meta.env.PUBLIC_API_URL ?? "http://localhost:8080";
 
 let categories: { id: number; name: string; glyph: string | null }[] = [];
-
 let categoriesError = false;
 
-try
-{
+try {
   const response = await fetch(`${API_BASE}/api/categories`);
-  if (response.ok)
-  {
+  if (response.ok) {
     categories = await response.json();
-  }
-  else
-  {
+  } else {
     categoriesError = true;
   }
-}
-catch
-{
+} catch {
   categoriesError = true;
 }
 ---
@@ -33,5 +28,5 @@ catch
     <p>Pick a category, choose an ongoing event, then set your selection and stake.</p>
   </div>
 
-  <BettingFlow categories={categories} loadError={categoriesError} client:load />
+  <BettingFlow categories={categories} apiBaseUrl={PUBLIC_API_BASE} loadError={categoriesError} client:load />
 </Layout>
