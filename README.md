@@ -214,7 +214,7 @@ The steps marked **★** are the key proofs:
 - **★ Illegal transition rejected:** finishing an already-finished event returns
   `400` — the state machine holds.
 - **★ Settlement verified:** the finished bet settles as **WON** with
-  **payout 68.75** (`25.00 × 2.75`).
+  **payout**.
 
 All assertions green = idempotency holds and the lifecycle is correct.
 
