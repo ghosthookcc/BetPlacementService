@@ -135,33 +135,21 @@ export const BettingView = component$<Props>(({ apiBaseUrl }) => {
       ? (users.value[state.userIndex]?.fullName ?? "Select a user")
       : "Select a user";
 
-  const pick = $((i: number) => {
-    state.userIndex = i;
-    userOpen.value = false;
-  });
-
-  const toggleUserOpen = $(() => {
-    userOpen.value = !userOpen.value;
-  });
-  const switchTab = $((newTab: "bets" | "settlements") => {
-    state.tab = newTab;
-  });
-
   const loadData = $(async () => {
     error.value = false;
     loading.value = true;
+
     bets.value = [];
     settlements.value = [];
 
     let query = "";
-    if (!isAdmin && state.userIndex >= 0) {
+    const admin = state.userIndex === ADMIN_USER_SELECTED;
+    if (!admin && state.userIndex >= 0) {
       const uid = users.value[state.userIndex]?.id;
       if (uid != null) {
         query = `?userId=${uid}`;
       }
     }
-
-    const separator = query ? "&" : "?";
 
     try {
       const [betsRequest, settlementsRequest] = await Promise.all([
@@ -188,6 +176,19 @@ export const BettingView = component$<Props>(({ apiBaseUrl }) => {
     } finally {
       loading.value = false;
     }
+  });
+
+  const pick = $(async (idx: number) => {
+    state.userIndex = idx;
+    userOpen.value = false;
+    await loadData();
+  });
+
+  const toggleUserOpen = $(() => {
+    userOpen.value = !userOpen.value;
+  });
+  const switchTab = $((newTab: "bets" | "settlements") => {
+    state.tab = newTab;
   });
 
   return (
@@ -317,7 +318,7 @@ export const BettingView = component$<Props>(({ apiBaseUrl }) => {
                       {selectionLabel(bet.selection, bet.teamA, bet.teamB)}
                     </span>
                     <span class="mono">SEK{bet.stake.toFixed(2)}</span>
-                    <span>{bet.state}</span>¨
+                    <span>{bet.state}</span>
                     <span class="mono">{fmtTime(bet.placedAt)}</span>
                   </div>
                 ))
@@ -358,13 +359,6 @@ export const BettingView = component$<Props>(({ apiBaseUrl }) => {
                       </span>
                     )}
                     <span>{`${settlement.teamA ?? "Team A"} vs ${settlement.teamB ?? "Team B"}`}</span>
-                    <span>
-                      {selectionLabel(
-                        settlement.selection,
-                        settlement.teamA,
-                        settlement.teamB,
-                      )}
-                    </span>
                     <span>
                       {selectionLabel(
                         settlement.selection,
