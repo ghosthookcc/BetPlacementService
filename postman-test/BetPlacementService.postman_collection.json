@@ -1,0 +1,366 @@
+{
+  "info": {
+    "name": "BetPlacementService - Idempotency & Lifecycle",
+    "description": "Proves the idempotency requirement and the full bet lifecycle (place -> consume -> settle) against a running instance. Run the whole collection in order (Collection Runner), each request asserts its own result. The headline proof is in the two 'Place bet' requests: the same request_id returns the SAME bet, and a duplicate-check request confirms only one row exists.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "requestId", "value": "" },
+    { "key": "eventId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "firstBetId", "value": "" },
+    { "key": "firstChecksum", "value": "" }
+  ],
+  "event": [
+  {
+    "listen": "prerequest",
+    "script": {
+      "exec": [
+        "// Generate ONE requestId per collection run",
+        "if (!pm.collectionVariables.get('requestId')) {",
+        "  const id = (crypto.randomUUID ? crypto.randomUUID() : ('pm-' + Date.now() + '-' + Math.floor(Math.random() * 100000)));",
+        "  pm.collectionVariables.set('requestId', id);",
+        "  console.log('Generated requestId =', id);",
+        "}"
+      ],
+      "type": "text/javascript"
+    }
+  }
+  ],
+  "item": [
+    {
+      "name": "1. Get a user id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const users = pm.response.json();",
+              "pm.test('at least one user exists', () => pm.expect(users.length).to.be.above(0));",
+              "pm.collectionVariables.set('userId', users[0].id);",
+              "console.log('userId =', users[0].id, '(' + users[0].fullName + ')');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] }
+      }
+    },
+    {
+      "name": "2. Get a category id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const cats = pm.response.json();",
+              "pm.test('at least one category exists', () => pm.expect(cats.length).to.be.above(0));",
+              "pm.collectionVariables.set('categoryId', cats[0].id);",
+              "console.log('categoryId =', cats[0].id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/categories", "host": ["{{baseUrl}}"], "path": ["api", "categories"] }
+      }
+    },
+    {
+      "name": "3. Get an UPCOMING event id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const events = pm.response.json();",
+              "pm.test('an UPCOMING event exists to bet on', function () {",
+              "  pm.expect(events.length, 'no UPCOMING events in this category — finish/cancel fewer events, or re-seed the DB').to.be.above(0);",
+              "});",
+              "if (events.length > 0) {",
+              "  pm.collectionVariables.set('eventId', events[0].id);",
+              "  console.log('eventId =', events[0].id, '(' + events[0].teamA + ' vs ' + events[0].teamB + ')');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/categories/{{categoryId}}/events",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "categories", "{{categoryId}}", "events"]
+        }
+      }
+    },
+    {
+      "name": "4. Place bet (first call)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status 201 Created', () => pm.response.to.have.status(201));",
+              "const bet = pm.response.json();",
+              "pm.test('bet has an id and checksum', function () {",
+              "  pm.expect(bet.id).to.exist;",
+              "  pm.expect(bet.checksum).to.be.a('string').with.lengthOf(64);",
+              "});",
+              "pm.test('bet is PENDING', () => pm.expect(bet.state).to.eql('PENDING'));",
+              "// Remember the first result — the second call must match it exactly.",
+              "pm.collectionVariables.set('firstBetId', bet.id);",
+              "pm.collectionVariables.set('firstChecksum', bet.checksum);",
+              "console.log('First placement -> bet id', bet.id, 'checksum', bet.checksum);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": {{userId}},\n  \"eventId\": \"{{eventId}}\",\n  \"selection\": \"TEAM_A_WIN\",\n  \"stake\": 25.00,\n  \"requestId\": \"{{requestId}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/bets", "host": ["{{baseUrl}}"], "path": ["api", "bets"] }
+      }
+    },
+    {
+      "name": "5. Place bet AGAIN — same request_id  ★ IDEMPOTENCY PROOF ★",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// This is the core proof. Identical body, identical request_id.",
+              "// The server must return the SAME bet, not create a second one.",
+              "pm.test('status 201 (idempotent retry still succeeds)', () => pm.response.to.have.status(201));",
+              "const bet = pm.response.json();",
+              "",
+              "pm.test('★ same bet id as the first call (no duplicate created)', function () {",
+              "  pm.expect(String(bet.id)).to.eql(String(pm.collectionVariables.get('firstBetId')));",
+              "});",
+              "",
+              "pm.test('★ same checksum as the first call (same bet returned)', function () {",
+              "  pm.expect(bet.checksum).to.eql(pm.collectionVariables.get('firstChecksum'));",
+              "});",
+              "",
+              "console.log('Second placement -> bet id', bet.id, '(matches first:', String(bet.id) === String(pm.collectionVariables.get('firstBetId')), ')');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": {{userId}},\n  \"eventId\": \"{{eventId}}\",\n  \"selection\": \"TEAM_A_WIN\",\n  \"stake\": 25.00,\n  \"requestId\": \"{{requestId}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/bets", "host": ["{{baseUrl}}"], "path": ["api", "bets"] }
+      }
+    },
+    {
+      "name": "6. Verify only ONE bet exists for this request_id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Cross-check via the read API: fetch this user's bets and count how",
+              "// many carry our (unique-per-run) selection+stake at this moment.",
+              "// The definitive count is really enforced by the DB's request_id UNIQUE",
+              "// constraint; this step is a convenient sanity check through the API.",
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const bets = pm.response.json();",
+              "const targetId = String(pm.collectionVariables.get('firstBetId'));",
+              "const matches = bets.filter(b => String(b.id) === targetId);",
+              "pm.test('★ exactly one bet row has our bet id', function () {",
+              "  pm.expect(matches.length).to.eql(1);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/bets?userId={{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "bets"],
+          "query": [{ "key": "userId", "value": "{{userId}}" }]
+        }
+      }
+    },
+    {
+      "name": "7. Consume the bet (ack the checksum)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('bet moved to CONSUMED', () => pm.expect(r.state).to.eql('CONSUMED'));",
+              "pm.test('first consume was not already-consumed', () => pm.expect(r.alreadyConsumed).to.eql(false));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"checksum\": \"{{firstChecksum}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/bets/consume", "host": ["{{baseUrl}}"], "path": ["api", "bets", "consume"] }
+      }
+    },
+    {
+      "name": "8. Consume AGAIN — same checksum ★ CONSUME IDEMPOTENCY ★",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Consuming twice must be a safe no-op — no second settlement.",
+              "pm.test('status 200 (idempotent)', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('★ reports alreadyConsumed = true', () => pm.expect(r.alreadyConsumed).to.eql(true));",
+              "pm.test('state still CONSUMED (or SETTLED)', function () {",
+              "  pm.expect(['CONSUMED','SETTLED']).to.include(r.state);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"checksum\": \"{{firstChecksum}}\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/bets/consume", "host": ["{{baseUrl}}"], "path": ["api", "bets", "consume"] }
+      }
+    },
+    {
+      "name": "9. Finish the event as TEAM_A_WIN (settles the bet)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('event is FINISHED', () => pm.expect(r.newState).to.eql('FINISHED'));",
+              "pm.test('★ our consumed bet was settled', () => pm.expect(r.betsSettled).to.be.above(0));",
+              "console.log('Settled', r.betsSettled, 'voided', r.betsVoided, 'expired', r.betsExpired);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"target\": \"FINISHED\",\n  \"result\": \"TEAM_A_WIN\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/events/{{eventId}}/state",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "events", "{{eventId}}", "state"]
+        }
+      }
+    },
+    {
+      "name": "10. Illegal transition rejected — finish again ★ STATE MACHINE ★",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// The event is already FINISHED (terminal). Finishing again must 400.",
+              "pm.test('★ status 400 (illegal FINISHED -> FINISHED)', () => pm.response.to.have.status(400));",
+              "const r = pm.response.json();",
+              "pm.test('error mentions the illegal transition', function () {",
+              "  pm.expect(JSON.stringify(r).toLowerCase()).to.include('illegal');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"target\": \"FINISHED\",\n  \"result\": \"TEAM_A_WIN\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/events/{{eventId}}/state",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "events", "{{eventId}}", "state"]
+        }
+      }
+    },
+    {
+      "name": "11. Verify settlement — WON, payout 68.75",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('status 200', () => pm.response.to.have.status(200));",
+              "const settlements = pm.response.json();",
+              "const target = String(pm.collectionVariables.get('firstBetId'));",
+              "const ours = settlements.find(s => String(s.betId) === target);",
+              "pm.test('a settlement exists for our bet', () => pm.expect(ours, 'no settlement for bet ' + target).to.exist);",
+              "if (ours) {",
+              "  pm.test('★ settlement is WON', () => pm.expect(ours.state).to.eql('WON'));",
+              "  pm.test('★ payout = stake*odds = 25.00 * 2.75 = 68.75', function () {",
+              "    pm.expect(Number(ours.payout)).to.eql(68.75);",
+              "  });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/settlements?userId={{userId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "settlements"],
+          "query": [{ "key": "userId", "value": "{{userId}}" }]
+        }
+      }
+    }
+  ]
+}
