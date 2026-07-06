@@ -79,7 +79,6 @@ Base URL: `http://localhost:8080`
 
 | Method | Path                               | Description                                             |
 |--------|------------------------------------|---------------------------------------------------------|
-| GET    | `/api/ping`                        | Health check.                                           |
 | GET    | `/api/users`                       | All users.                                              |
 | GET    | `/api/categories`                  | All categories.                                         |
 | GET    | `/api/categories/{id}/events`      | **UPCOMING** (bettable) events in a category.           |
