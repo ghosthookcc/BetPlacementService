@@ -100,10 +100,10 @@ export const UserSelector = component$<Props>(({ apiBaseUrl }) => {
         aria-expanded={open.value}
         onClick$={() => toggleUserSelectorOpen()}
       >
-        <span class="usel__avatar" data-empty={!isChosen} />
+        <span class="usel__avatar" data-empty={!isChosen ? "true" : "false"} />
         <span class="usel__meta">
           <span class="usel__eyebrow">Betting as</span>
-          <span class="usel__name" data-empty={!isChosen}>
+          <span class="usel__name" data-empty={!isChosen ? "true" : "false"}>
             {isChosen ? chosen.value?.fullName : "Choose user"}
           </span>
         </span>

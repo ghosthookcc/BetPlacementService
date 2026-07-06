@@ -279,7 +279,7 @@ export const BettingFlow = component$<Props>(
           <button
             type="button"
             class="crumb"
-            data-active={s.categoryId === null}
+            data-active={s.categoryId === null ? "true" : "false"}
             onClick$={reset}
           >
             <span class="crumb__n mono">1</span> Category
@@ -288,8 +288,8 @@ export const BettingFlow = component$<Props>(
           <button
             type="button"
             class="crumb"
-            data-active={s.categoryId !== null && event === null}
-            data-disabled={s.categoryId === null}
+            data-active={s.categoryId !== null && event === null ? "true" : "false"}
+            data-disabled={s.categoryId === null ? "true" : "false"}
             onClick$={() => backToEvents}
           >
             <span class="crumb__n mono">2</span> Event
@@ -297,8 +297,8 @@ export const BettingFlow = component$<Props>(
           <span class="crumb__sep">/</span>
           <span
             class="crumb"
-            data-active={event !== null}
-            data-disabled={event === null}
+            data-active={event !== null ? "true" : "false"}
+            data-disabled={event === null ? "true" : "false"}
           >
             <span class="crumb__n mono">3</span> Place bet
           </span>
@@ -325,7 +325,7 @@ export const BettingFlow = component$<Props>(
                   type="button"
                   key={c.id}
                   class="cat"
-                  data-active={s.categoryId === c.id}
+                  data-active={s.categoryId === c.id ? "true" : "false"}
                   onClick$={() => pickCategory(c.id)}
                 >
                   <span class="cat__glyph">{c.glyph ?? "•"}</span>
@@ -373,7 +373,7 @@ export const BettingFlow = component$<Props>(
                     type="button"
                     key={e.id}
                     class="ev"
-                    data-active={event?.id === e.id}
+                    data-active={event?.id === e.id ? "true" : "false"}
                     onClick$={() => pickEvent(e)}
                   >
                     <span class="ev__live" />
@@ -418,7 +418,7 @@ export const BettingFlow = component$<Props>(
                   <button
                     type="button"
                     class="seg__opt"
-                    data-active={s.selection === "A"}
+                    data-active={s.selection === "A" ? "true" : "false"}
                     onClick$={() => changeBetSelectionInput("A")}
                   >
                     {event.teamA} win
@@ -429,7 +429,7 @@ export const BettingFlow = component$<Props>(
                   <button
                     type="button"
                     class="seg__opt"
-                    data-active={s.selection === "draw"}
+                    data-active={s.selection === "draw" ? "true" : "false"}
                     onClick$={() => changeBetSelectionInput("draw")}
                   >
                     Draw
@@ -440,7 +440,7 @@ export const BettingFlow = component$<Props>(
                   <button
                     type="button"
                     class="seg__opt"
-                    data-active={s.selection === "B"}
+                    data-active={s.selection === "B" ? "true" : "false"}
                     onClick$={() => changeBetSelectionInput("B")}
                   >
                     {event.teamB} win

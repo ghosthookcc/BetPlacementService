@@ -257,7 +257,7 @@ export const BettingView = component$<Props>(({ apiBaseUrl }) => {
             <button
               type="button"
               class="tab"
-              data-active={state.tab === "bets"}
+              data-active={state.tab === "bets" ? "true" : "false"}
               onClick$={() => switchTab("bets")}
             >
               Bets
@@ -265,7 +265,7 @@ export const BettingView = component$<Props>(({ apiBaseUrl }) => {
             <button
               type="button"
               class="tab"
-              data-active={state.tab === "settlements"}
+              data-active={state.tab === "settlements" ? "true" : "false"}
               onClick$={() => switchTab("settlements")}
             >
               Settlements
