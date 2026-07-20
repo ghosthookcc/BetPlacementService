@@ -31,14 +31,61 @@ won bets pay `stake × odds`, cancelled events void bets (stake returned), loser
 
 ## Running the service
 
-You need **Docker** and **Docker Compose** installed.
+You need **Docker** and **Docker Compose** installed, plus **Maven** and a
+**JDK 21** on your PATH (used once, after cloning, to generate the Maven Wrapper). 
+
+The instructions are to be executed in order as they follow after navigating to the project root of the cloned repository; ./BetPlacementService
+
+### Install Maven
+
+- **Windows:** `winget install Apache.Maven` (or `choco install maven`)
+- **macOS:** `brew install maven`
+- **Linux (Debian/Ubuntu):** `sudo apt install maven`
+
+Verify with `mvn -v` and `java -version` (expect Java 21).
+
+### Create the `.env` file
+
+Docker Compose reads configuration (Postgres credentials, the frontend's API
+URL) from a `.env` file in the project root. Create it before building:
+
+```bash
+cat > .env <<'EOF'
+POSTGRES_USER=betting
+POSTGRES_PASSWORD=devpass
+POSTGRES_DB=betting
+PUBLIC_API_URL=http://localhost:8080
+EOF
+```
+
+On **Windows PowerShell**, use:
+
+```powershell
+@'
+POSTGRES_USER=betting
+POSTGRES_PASSWORD=devpass
+POSTGRES_DB=betting
+PUBLIC_API_URL=http://localhost:8080
+'@ | Set-Content -Encoding ascii .env
+```
+
+These are local development defaults, change them for any real deployment.
+
+### Build and run
 
 From the project root:
 
 ```bash
+cd api
+mvn wrapper:wrapper
+cd ..
 docker compose build --no-cache
 docker compose up
 ```
+
+The `mvn wrapper:wrapper` step generates the Maven Wrapper (`mvnw`, `mvnw.cmd`,
+`.mvn/wrapper/`) inside `api/`, which the Docker build then uses. Run it only
+once, right after cloning.
 
 That builds and starts three containers:
 
@@ -235,10 +282,13 @@ docker compose up
 
 ```
 BetPlacementService/
+├── .git
 ├── api/                 Spring Boot REST API (Java 21)
 ├── www/                 Astro + Qwik frontend
 ├── postgresql/init/     Schema + seed SQL (runs on first DB start)
 ├── postman-test/        Postman collection (idempotency + lifecycle proof)
 ├── docker-compose.yml
+├── .gitignore
+├── .env
 └── README.md
 ```
